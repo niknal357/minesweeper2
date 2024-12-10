@@ -2,10 +2,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const boardElement = document.getElementById('board');
     const resetBtn = document.getElementById('resetBtn');
     const flagCountDisplay = document.getElementById('flagCount');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const overlay = document.getElementById('overlay');
 
-    const rows = 16;
-    const cols = 16;
-    const mineCount = 90;
+    // New Settings Elements
+    const widthInput = document.getElementById('widthInput');
+    const heightInput = document.getElementById('heightInput');
+    const mineInput = document.getElementById('mineInput');
+    const difficultySlider = document.getElementById('difficultySlider');
+
+    const widthValue = document.getElementById('widthValue');
+    const heightValue = document.getElementById('heightValue');
+    const mineValue = document.getElementById('mineValue');
+    const difficultyValue = document.getElementById('difficultyValue');
+
+    // Default Settings
+    let rows = parseInt(widthInput.value);
+    let cols = parseInt(heightInput.value);
+    let mineCount = parseInt(mineInput.value);
+    let difficulty = parseInt(difficultySlider.value); // 0: Easy, 1: Hard, 2: Unlocked
+    // load from local storage
+    if (localStorage.getItem('difficulty')) {
+        difficulty = parseInt(localStorage.getItem('difficulty'));
+        difficultySlider.value = difficulty;
+        const difficulties = ['Easy', 'Hard', 'Unlocked'];
+        difficultyValue.textContent = difficulties[difficulty];
+    }
+
+    if (localStorage.getItem('width')) {
+        widthInput.value = localStorage.getItem('width');
+        widthValue.textContent = localStorage.getItem('width');
+    }
+
+    if (localStorage.getItem('height')) {
+        heightInput.value = localStorage.getItem('height');
+        heightValue.textContent = localStorage.getItem('height');
+    }
+
+    if (localStorage.getItem('mines')) {
+        mineInput.value = localStorage.getItem('mines');
+        mineValue.textContent = localStorage.getItem('mines');
+    }
+
     let flagsUsed = 0;
     let firstClickMade = false;
 
@@ -19,11 +59,103 @@ document.addEventListener('DOMContentLoaded', () => {
     // For press logic
     let currentPressedCell = null;
 
-    resetBtn.addEventListener('click', initGame);
+    // Settings Menu Event Listeners
+    settingsBtn.addEventListener('click', openSettings);
+    closeSettingsBtn.addEventListener('click', closeSettings);
+    overlay.addEventListener('click', closeSettings);
+
+    resetBtn.addEventListener('click', () => {
+        closeSettings();
+        initGame();
+    });
+
+    // Number Inputs Event Listeners to Update Display Values and Validation
+    widthInput.addEventListener('blur', () => {
+        let value = parseInt(widthInput.value);
+        if (isNaN(value)) value = 10;
+        if (value < 3) value = 3;
+        widthInput.value = value;
+        widthValue.textContent = value;
+        updateMineInputMax();
+        if (!firstClickMade) {
+            initGame();
+        }
+    });
+
+    heightInput.addEventListener('blur', () => {
+        let value = parseInt(heightInput.value);
+        if (isNaN(value)) value = 10;
+        if (value < 4) value = 4;
+        heightInput.value = value;
+        heightValue.textContent = value;
+        updateMineInputMax();
+        if (!firstClickMade) {
+            initGame();
+        }
+    });
+
+    mineInput.addEventListener('blur', () => {
+        let value = parseInt(mineInput.value);
+        const maxMines = calculateMaxMines();
+        if (isNaN(value)) value = Math.floor(0.3 * maxMines);
+        if (value < 1) value = 1;
+        if (value > maxMines) value = maxMines;
+        mineInput.value = value;
+        mineValue.textContent = value;
+        if (!firstClickMade) {
+            initGame();
+        }
+    });
+
+    difficultySlider.addEventListener('input', () => {
+        const difficulties = ['Easy', 'Hard', 'Unlocked'];
+        difficultyValue.textContent = difficulties[difficultySlider.value];
+        difficulty = parseInt(difficultySlider.value);
+        // save this in local storage
+        localStorage.setItem('difficulty', difficulty);
+    });
+
+    // Function to calculate maximum mines based on board size (80% of total cells)
+    function calculateMaxMines() {
+        let rows = parseInt(widthInput.value);
+        let cols = parseInt(heightInput.value);
+        return Math.floor(rows * cols - 9);
+    }
+
+    // Function to update the max attribute of the mine input
+    function updateMineInputMax() {
+        const maxMines = calculateMaxMines();
+        mineInput.max = maxMines;
+        if (parseInt(mineInput.value) > maxMines) {
+            mineInput.value = maxMines;
+            mineValue.textContent = maxMines;
+        }
+    }
 
     initGame();
 
+    function openSettings() {
+        settingsMenu.classList.add('open');
+        overlay.classList.add('active');
+    }
+
+    function closeSettings() {
+        settingsMenu.classList.remove('open');
+        overlay.classList.remove('active');
+    }
+
     function initGame() {
+        // Retrieve current settings
+        rows = parseInt(widthInput.value);
+        cols = parseInt(heightInput.value);
+        mineCount = parseInt(mineInput.value);
+        difficulty = parseInt(difficultySlider.value);
+
+        // save settings in local storage
+        localStorage.setItem('width', rows);
+        localStorage.setItem('height', cols);
+        localStorage.setItem('mines', mineCount);
+
         board = [];
         isGameOver = false;
         flagsUsed = 0;
@@ -32,6 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         boardElement.innerHTML = '';
 
+        // Initialize Board Data Structure
         for (let r = 0; r < rows; r++) {
             board[r] = [];
             for (let c = 0; c < cols; c++) {
@@ -44,8 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Create Board UI
         for (let r = 0; r < rows; r++) {
             const rowElement = document.createElement('div');
+            rowElement.classList.add('row');
             for (let c = 0; c < cols; c++) {
                 const cellElement = document.createElement('div');
                 cellElement.classList.add('cell', 'hidden');
@@ -77,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const cell = board[r][c];
         const cellEl = getCellElement(r, c);
 
-        // Ctrl or Shift click to flag
+        // Ctrl or Shift click or Right click to flag
         if (e.ctrlKey || e.shiftKey || e.button === 2) {
             toggleFlag(r, c);
             return;
@@ -155,27 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function placeMinesAvoiding(r, c) {
-        // let safeCells = new Set();
-        // for (let dr = -1; dr <= 1; dr++) {
-        //     for (let dc = -1; dc <= 1; dc++) {
-        //         let nr = r + dr;
-        //         let nc = c + dc;
-        //         if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-        //             safeCells.add(`${nr},${nc}`);
-        //         }
-        //     }
-        // }
-
-        // let placed = 0;
-        // while (placed < mineCount) {
-        //     let rr = Math.floor(Math.random() * rows);
-        //     let cc = Math.floor(Math.random() * cols);
-        //     if (!safeCells.has(`${rr},${cc}`) && !board[rr][cc].mine) {
-        //         board[rr][cc].mine = true;
-        //         placed++;
-        //     }
-        // }
-        let generatedBoard = runGenerator(cols, rows, mineCount, c, r);
+        // Assuming runGenerator is your custom mine placement function
+        // which takes columns, rows, mineCount, firstClickCol, firstClickRow, and difficulty
+        let generatedBoard = runGenerator(cols, rows, mineCount, c, r, difficulty);
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
                 if (generatedBoard[j][i] === "x") {
@@ -365,14 +482,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
+            // Optionally, you can display a game over message here
             // alert('Game Over! You hit a mine.');
         } else {
+            // Optionally, you can display a win message here
             // alert('Congratulations! You won!');
-            // flag all remaining mines
+            // Flag all remaining mines
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     if (board[r][c].mine && !board[r][c].flagged) {
                         toggleFlag(r, c, true);
+                    }
+                    if (board[r][c].mine) {
+                        const cellEl = getCellElement(r, c);
+                        cellEl.classList.add('correct');
                     }
                 }
             }

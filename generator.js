@@ -178,8 +178,12 @@ function solveBoard(board, startX, startY, capabilities) {
     let toFlag = [];
     while (numMinesFound < numMinesTotal) {
         // printBoard(visibleBoard);
+
+        let totalUnopened = 0;
+
         gIterateBoard(visibleBoard, (x, y) => {
             if (visibleBoard[x][y] == "-") {
+                totalUnopened++;
                 return;
             }
             if (visibleBoard[x][y] == "f") {
@@ -209,7 +213,17 @@ function solveBoard(board, startX, startY, capabilities) {
                     }
                 });
             }
+
         });
+        // console.log(totalUnopened, numMinesTotal, numMinesFound);
+        if (totalUnopened == numMinesTotal - numMinesFound) {
+            gIterateBoard(visibleBoard, (x, y) => {
+                if (visibleBoard[x][y] == "-") {
+                    toFlag.push([x, y]);
+                    stepsUsed.push("c flag");
+                }
+            });
+        }
         let numberCells;
         let mapUnopenedToNumbers;
         let mapNumbersToUnopened;
@@ -295,8 +309,11 @@ function solveBoard(board, startX, startY, capabilities) {
                     let numberNodes2 = findAllUniqueAdjacencies(unopenedAroundNumber, mapUnopenedToNumbers);
                     let variablePositions = findAllUniqueAdjacencies(numberNodes2, mapNumbersToUnopened);
                     let initialVariableIds = [];
-                    for (let j = 0; j < variablePositions.length; j++) {
-                        initialVariableIds.push(j);
+                    for (let j = 0; j < unopenedAroundNumber.length; j++) {
+                        let idx = variablePositions.findIndex((elem) => elem[0] == unopenedAroundNumber[j][0] && elem[1] == unopenedAroundNumber[j][1]);
+                        if (idx != -1) {
+                            initialVariableIds.push(idx);
+                        }
                     }
                     let constraints = [
                         {
@@ -331,6 +348,13 @@ function solveBoard(board, startX, startY, capabilities) {
                     }
                     // console.log(variablePositions);
                     // console.log(constraints);
+                    if (numMinesTotal - numMinesFound > variablePositions.length) {
+                        constraints.push({
+                            eq: false,
+                            value: numMinesTotal - numMinesFound,
+                            variables: initialVariableIds
+                        });
+                    }
                     let [consistencyVector, consistentValues] = constraintSolve(constraints, variablePositions.length);
                     // console.log(consistencyVector);
                     if (consistentValues > 0 && consistencyVector != null) {
@@ -442,44 +466,80 @@ function makeEmptyBoard(width, height) {
 }
 
 function pickMinePosition(board, clickX, clickY) {
+    const width = board.length;
+    const height = board[0].length;
+    const centerX = (width - 1) / 2;
+    const centerY = (height - 1) / 2;
+    const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
+
     while (true) {
-        let x = Math.floor(Math.random() * board.length);
-        let y = Math.floor(Math.random() * board[0].length);
+        let x = Math.floor(Math.random() * width);
+        let y = Math.floor(Math.random() * height);
+
+        // Avoid placing a mine adjacent to the initial click
         if (Math.abs(x - clickX) <= 1 && Math.abs(y - clickY) <= 1) {
             continue;
         }
-        if (board[x][y] == "x") {
+
+        // Avoid placing a mine where one already exists
+        if (board[x][y] === "x") {
             continue;
         }
-        return [x, y];
+
+        // Calculate distance from the center
+        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+
+        // Determine the probability to accept this cell
+        // Cells closer to the center have higher probability
+        const probability = 1 - (distance / maxDistance);
+
+        if (Math.random() < probability) {
+            return [x, y];
+        }
     }
 }
 
-function runGenerator(width, height, nMines, clickX, clickY) {
-    let capabilities = {
-        bfConE1: false,
-        bfConE2: true,
-        bfConE3: false,
+
+function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
+    console.log(difficulty);
+    if (difficulty == 2) { // unlocked
+        return generateRandomBoard(width, height, nMines, clickX, clickY);
     }
-    let numMinesPlaced = 0;
+    let capabilities;
+    if (difficulty == 0) { // easy
+        capabilities = {
+            bfConE1: false,
+            bfConE2: false,
+            bfConE3: false,
+        }
+    } else if (difficulty == 1) { // hard
+        capabilities = {
+            bfConE1: false,
+            bfConE2: true,
+            bfConE3: false,
+        }
+    }
+
     let nFailedAttempts = 0;
     // attempt to caluculate density of mines we can confidently place
     // randomly while still being able to solve the board
-    let density = 0;
+    let density = 0.1;
     let nMinesImmediate = Math.floor(nMines * density);
     nMinesImmediate = Math.min(nMinesImmediate, nMines);
-    let genImmediate = true;
-    let board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY);
+    let board;
+    do {
+        board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY);
+    } while (!solveBoard(board, clickX, clickY, capabilities).success);
+    let numMinesPlaced = nMinesImmediate;
     let status;
     while (numMinesPlaced < nMines) {
         let [x, y] = pickMinePosition(board, clickX, clickY);
         board[x][y] = "x";
-        // printBoard(board);
+        printBoard(board);
         status = solveBoard(board, clickX, clickY, capabilities);
         if (status.success) {
             numMinesPlaced++;
             nFailedAttempts = 0;
-            genImmediate = false;
         } else {
             board[x][y] = "-"
             nFailedAttempts++;
@@ -488,15 +548,17 @@ function runGenerator(width, height, nMines, clickX, clickY) {
                 break
             }
         }
-        if (nFailedAttempts > 20 || genImmediate) {
-            board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY);
-            genImmediate = true;
-            numMinesPlaced = 0;
+        if (nFailedAttempts > 50) {
+            do {
+                board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY);
+            } while (!solveBoard(board, clickX, clickY, capabilities).success);
+            numMinesPlaced = nMinesImmediate;
             nFailedAttempts = 0;
         }
     }
     // console.log(status.steps);
     // count how many of each step there were in the steps
+    printBoard(board);
     let steps = status.steps;
     let stepCounts = {};
     for (let i = 0; i < steps.length; i++) {
@@ -505,7 +567,7 @@ function runGenerator(width, height, nMines, clickX, clickY) {
         }
         stepCounts[steps[i]]++;
     }
-    // console.log(stepCounts);
+    console.log(stepCounts);
     return board;
     // while (true) {
     //     let board = generateRandomBoard(width, height, nMines, clickX, clickY);
