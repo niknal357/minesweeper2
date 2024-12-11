@@ -50,8 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // load from local storage
     if (localStorage.getItem('difficulty')) {
         difficulty = localStorage.getItem('difficulty');
-        let difficultyNum = difficulties.find(d => d.tid === difficulty).id;
-        if (difficultyNum === undefined) {
+        let difficultyNum;
+        let difficultyObj = difficulties.find(d => d.tid === difficulty);
+        if (difficultyObj != undefined) {
+            difficultyNum = difficultyObj.id;
+        } else {
             difficultyNum = 0;
         }
         difficultySlider.value = difficultyNum;
