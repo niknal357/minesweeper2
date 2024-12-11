@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const overlay = document.getElementById('overlay');
 
-    // New Settings Elements
+    const presetSelector = document.getElementById('presetSelector');
     const widthInput = document.getElementById('widthInput');
     const heightInput = document.getElementById('heightInput');
     const mineInput = document.getElementById('mineInput');
@@ -18,9 +18,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const mineValue = document.getElementById('mineValue');
     const difficultyValue = document.getElementById('difficultyValue');
 
+    let presets = [
+        { name: 'Beginner', id: 'beginner', width: 9, height: 9, mines: 15, difficulty: "easy" },
+        { name: 'Intermediate', id: 'intermediate', width: 16, height: 16, mines: 40, difficulty: "easy" },
+        { name: 'Skilled', id: 'skilled', width: 16, height: 16, mines: 80, difficulty: "hard" },
+        { name: 'Expert', id: 'expert', width: 30, height: 16, mines: 150, difficulty: "hard" },
+        { name: 'Van Rijn', id: 'vanrijn', width: 30, height: 30, mines: 225, difficulty: "unlocked" }
+    ];
+
+    for (let i = 0; i < presets.length; i++) {
+        const option = document.createElement('option');
+        option.value = presets[i].id;
+        option.textContent = presets[i].name;
+        // insert it before the last option (custom)
+        presetSelector.insertBefore(option, presetSelector.children[presetSelector.children.length - 1]);
+    }
+
     // Default Settings
-    let rows = parseInt(widthInput.value);
-    let cols = parseInt(heightInput.value);
+    let cols = parseInt(widthInput.value);
+    let rows = parseInt(heightInput.value);
     let mineCount = parseInt(mineInput.value);
     let difficulty = parseInt(difficultySlider.value); // 0: Easy, 1: Hard, 2: Unlocked
     // load from local storage
@@ -58,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // For press logic
     let currentPressedCell = null;
+    let clickLock = false;
 
     // Settings Menu Event Listeners
     settingsBtn.addEventListener('click', openSettings);
@@ -68,6 +85,40 @@ document.addEventListener('DOMContentLoaded', () => {
         closeSettings();
         initGame();
     });
+
+    presetSelector.addEventListener('change', () => {
+        const selectedPreset = presets[presetSelector.selectedIndex];
+        widthInput.value = selectedPreset.width;
+        heightInput.value = selectedPreset.height;
+        mineInput.value = selectedPreset.mines;
+        difficultySlider.value = selectedPreset.difficulty === "easy" ? 0 : selectedPreset.difficulty === "hard" ? 1 : 2;
+        widthValue.textContent = selectedPreset.width;
+        heightValue.textContent = selectedPreset.height;
+        mineValue.textContent = selectedPreset.mines;
+        const difficulties = ['Easy', 'Hard', 'Unlocked'];
+        difficultyValue.textContent = difficulties[difficultySlider.value];
+        updateMineInputMax();
+        if (!firstClickMade) {
+            initGame();
+        }
+    });
+
+    function determineAndSetPresetIfAny() {
+        // check the current settings and compare it with the presets
+        // if it matches a preset, set the preset selector to that preset
+        // if it doesn't match any preset, set the preset selector to "Custom"
+        const selectedPreset = presets.find(preset => {
+            return parseInt(widthInput.value) === preset.width &&
+                parseInt(heightInput.value) === preset.height &&
+                parseInt(mineInput.value) === preset.mines &&
+                (preset.difficulty === "easy" ? 0 : preset.difficulty === "hard" ? 1 : 2) === parseInt(difficultySlider.value);
+        });
+        if (selectedPreset) {
+            presetSelector.value = selectedPreset.id;
+        } else {
+            presetSelector.value = "custom";
+        }
+    }
 
     // Number Inputs Event Listeners to Update Display Values and Validation
     widthInput.addEventListener('blur', () => {
@@ -80,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!firstClickMade) {
             initGame();
         }
+        determineAndSetPresetIfAny();
     });
 
     heightInput.addEventListener('blur', () => {
@@ -92,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!firstClickMade) {
             initGame();
         }
+        determineAndSetPresetIfAny();
     });
 
     mineInput.addEventListener('blur', () => {
@@ -105,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!firstClickMade) {
             initGame();
         }
+        determineAndSetPresetIfAny();
     });
 
     difficultySlider.addEventListener('input', () => {
@@ -113,12 +167,23 @@ document.addEventListener('DOMContentLoaded', () => {
         difficulty = parseInt(difficultySlider.value);
         // save this in local storage
         localStorage.setItem('difficulty', difficulty);
+        determineAndSetPresetIfAny();
     });
+
+    function setClickLock(lock) {
+        clickLock = lock;
+        // then add a class to the board to indicate click lock
+        if (lock) {
+            boardElement.classList.add('click-lock');
+        } else {
+            boardElement.classList.remove('click-lock');
+        }
+    }
 
     // Function to calculate maximum mines based on board size (80% of total cells)
     function calculateMaxMines() {
-        let rows = parseInt(widthInput.value);
-        let cols = parseInt(heightInput.value);
+        let cols = parseInt(widthInput.value);
+        let rows = parseInt(heightInput.value);
         return Math.floor(rows * cols - 9);
     }
 
@@ -131,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
             mineValue.textContent = maxMines;
         }
     }
+
+    determineAndSetPresetIfAny();
 
     initGame();
 
@@ -145,16 +212,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initGame() {
+        setClickLock(false);
         // Retrieve current settings
-        rows = parseInt(widthInput.value);
-        cols = parseInt(heightInput.value);
+        cols = parseInt(widthInput.value);
+        rows = parseInt(heightInput.value);
         mineCount = parseInt(mineInput.value);
         difficulty = parseInt(difficultySlider.value);
 
         // save settings in local storage
-        localStorage.setItem('width', rows);
-        localStorage.setItem('height', cols);
+        localStorage.setItem('width', cols);
+        localStorage.setItem('height', rows);
         localStorage.setItem('mines', mineCount);
+        localStorage.setItem('difficulty', difficulty);
 
         board = [];
         isGameOver = false;
@@ -231,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleMouseUp(e) {
+    async function handleMouseUp(e) {
         if (isGameOver) return;
         const r = parseInt(e.currentTarget.dataset.row);
         const c = parseInt(e.currentTarget.dataset.col);
@@ -245,9 +314,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!cell.revealed && !cell.flagged) {
                 if (!firstClickMade) {
-                    placeMinesAvoiding(r, c);
+                    setClickLock(true);
+                    await placeMinesAvoiding(r, c);
                     calculateAdjacentMines();
                     firstClickMade = true;
+                    setClickLock(false);
                 }
                 revealCell(r, c);
                 checkWin();
@@ -289,10 +360,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function placeMinesAvoiding(r, c) {
+    async function placeMinesAvoiding(r, c) {
         // Assuming runGenerator is your custom mine placement function
         // which takes columns, rows, mineCount, firstClickCol, firstClickRow, and difficulty
-        let generatedBoard = runGenerator(cols, rows, mineCount, c, r, difficulty);
+        let generatedBoard = await raceRunGenerator(cols, rows, mineCount, c, r, difficulty, numberOfWorkers = determineOptimalWorkerCount('cpu'), timeoutDuration = 60000);
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
                 if (generatedBoard[j][i] === "x") {

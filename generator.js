@@ -465,43 +465,118 @@ function makeEmptyBoard(width, height) {
     return board;
 }
 
-function pickMinePosition(board, clickX, clickY) {
+/**
+ * Picks a mine position on the Minesweeper board avoiding clumping at edges and ensuring even distribution.
+ *
+ * @param {Array<Array<string|null>>} board - The current Minesweeper board.
+ * @param {number} clickX - The X-coordinate of the initial click.
+ * @param {number} clickY - The Y-coordinate of the initial click.
+ * @param {Object} [options] - Optional parameters for customization.
+ * @param {number} [options.numRegionsX=2] - Number of regions along the X-axis.
+ * @param {number} [options.numRegionsY=2] - Number of regions along the Y-axis.
+ * @returns {[number, number]} - The selected mine position as [x, y].
+ * @throws {Error} - If no valid cells are available for mine placement.
+ */
+function pickMinePosition(board, clickX, clickY, options = {}) {
     const width = board.length;
+    if (width === 0) throw new Error("Board width cannot be zero.");
     const height = board[0].length;
+    if (height === 0) throw new Error("Board height cannot be zero.");
+
+    const numRegionsX = options.numRegionsX || 2;
+    const numRegionsY = options.numRegionsY || 2;
+    const regionWidth = Math.ceil(width / numRegionsX);
+    const regionHeight = Math.ceil(height / numRegionsY);
+
+    // Calculate center
     const centerX = (width - 1) / 2;
     const centerY = (height - 1) / 2;
     const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
 
-    while (true) {
-        let x = Math.floor(Math.random() * width);
-        let y = Math.floor(Math.random() * height);
+    // Function to determine region indices for a cell
+    const getRegion = (x, y) => {
+        const regionX = Math.floor(x / regionWidth);
+        const regionY = Math.floor(y / regionHeight);
+        // Ensure indices are within bounds
+        return [
+            Math.min(regionX, numRegionsX - 1),
+            Math.min(regionY, numRegionsY - 1)
+        ];
+    };
 
-        // Avoid placing a mine adjacent to the initial click
-        if (Math.abs(x - clickX) <= 1 && Math.abs(y - clickY) <= 1) {
-            continue;
-        }
-
-        // Avoid placing a mine where one already exists
-        if (board[x][y] === "x") {
-            continue;
-        }
-
-        // Calculate distance from the center
-        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-
-        // Determine the probability to accept this cell
-        // Cells closer to the center have higher probability
-        const probability = 1 - (distance / maxDistance);
-
-        if (Math.random() < probability) {
-            return [x, y];
+    // Compute current mine counts per region based on the board
+    const mineCountMap = Array.from({ length: numRegionsX }, () => Array(numRegionsY).fill(0));
+    for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+            if (board[x][y] === "x") {
+                const [regionX, regionY] = getRegion(x, y);
+                mineCountMap[regionX][regionY]++;
+            }
         }
     }
+
+    // Identify all eligible cells
+    const candidates = [];
+    let totalWeight = 0;
+
+    for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+            // Skip cells adjacent to the initial click
+            if (Math.abs(x - clickX) <= 1 && Math.abs(y - clickY) <= 1) {
+                continue;
+            }
+
+            // Skip cells that already have a mine
+            if (board[x][y] === "x") {
+                continue;
+            }
+
+            // Determine region
+            const [regionX, regionY] = getRegion(x, y);
+            const currentMineCount = mineCountMap[regionX][regionY];
+            const maxMinesPerRegion = Math.ceil((width * height) / (numRegionsX * numRegionsY)); // Optional: Adjust as needed
+
+            // Calculate region density weight (favor regions with fewer mines)
+            // Using inverse proportionality; you can adjust the formula as needed
+            const regionWeight = 1 / (currentMineCount + 1); // +1 to avoid division by zero
+
+            // Calculate centrality weight (closer to center -> higher weight)
+            const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+            const centralityWeight = 1 - (distance / maxDistance); // Normalize to [0,1]
+
+            // Total weight for the cell
+            const weight = centralityWeight * regionWeight;
+
+            if (weight > 0) { // Only consider cells with positive weight
+                candidates.push({ x, y, weight });
+                totalWeight += weight;
+            }
+        }
+    }
+
+    if (candidates.length === 0) {
+        throw new Error("No valid cells available to place a mine.");
+    }
+
+    // Perform weighted random selection
+    const rand = Math.random() * totalWeight;
+    let cumulative = 0;
+    for (let cell of candidates) {
+        cumulative += cell.weight;
+        if (rand < cumulative) {
+            return [cell.x, cell.y];
+        }
+    }
+
+    // Fallback (due to floating-point precision)
+    const lastCell = candidates[candidates.length - 1];
+    return [lastCell.x, lastCell.y];
 }
 
 
+
 function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
-    console.log(difficulty);
+    // console.log(difficulty);
     if (difficulty == 2) { // unlocked
         return generateRandomBoard(width, height, nMines, clickX, clickY);
     }
@@ -535,7 +610,7 @@ function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
     while (numMinesPlaced < nMines) {
         let [x, y] = pickMinePosition(board, clickX, clickY);
         board[x][y] = "x";
-        printBoard(board);
+        // printBoard(board);
         status = solveBoard(board, clickX, clickY, capabilities);
         if (status.success) {
             numMinesPlaced++;
@@ -558,7 +633,7 @@ function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
     }
     // console.log(status.steps);
     // count how many of each step there were in the steps
-    printBoard(board);
+    // printBoard(board);
     let steps = status.steps;
     let stepCounts = {};
     for (let i = 0; i < steps.length; i++) {
@@ -567,7 +642,7 @@ function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
         }
         stepCounts[steps[i]]++;
     }
-    console.log(stepCounts);
+    // console.log(stepCounts);
     return board;
     // while (true) {
     //     let board = generateRandomBoard(width, height, nMines, clickX, clickY);
@@ -579,3 +654,16 @@ function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
     // }
 
 }
+
+// Listen for messages from the main thread
+self.onmessage = function (event) {
+    const { width, height, nMines, clickX, clickY, difficulty } = event.data;
+    try {
+        const board = runGenerator(width, height, nMines, clickX, clickY, difficulty);
+        // Post the result back to the main thread
+        self.postMessage({ success: true, board });
+    } catch (error) {
+        // Post the error back to the main thread
+        self.postMessage({ success: false, error: error.message });
+    }
+};

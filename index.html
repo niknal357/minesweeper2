@@ -26,6 +26,14 @@
             <!-- Reset Button -->
             <button id="resetBtn">Reset Game</button>
 
+            <!-- Preset Selector -->
+            <div class="setting">
+                <label for="presetSelector">Preset:</label>
+                <select id="presetSelector">
+                    <option value="custom" hidden>Custom</option>
+                </select>
+            </div>
+
             <!-- Width Input -->
             <div class="setting">
                 <label for="widthInput">Width: <span id="widthValue">16</span></label>
@@ -54,6 +62,7 @@
                     <span>Unlocked</span>
                 </div>
                 <div class="info">The difficulty slider controlls how constrained the mine placement is. Easy should require no brainpower. Hard should be harder than easy. Unlocked places no constraints on mine placement which may result in unsolvable games.</div>
+                <div class="info">"Hard" difficulty does not guarantee a harder game, but it simply allows the generator to make one that is.</div>
             </div>
         </div>
     </div>
@@ -62,6 +71,7 @@
     <div id="overlay" class="overlay"></div>
 
     <script src="generator.js"></script>
+    <script src="racer.js"></script>
     <script src="script.js"></script>
 </body>
 
