@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heightValue.textContent = selectedPreset.height;
         mineValue.textContent = selectedPreset.mines;
         difficultyValue.textContent = difficulties[difficultySlider.value].name;
+        difficulty = difficulties[difficultySlider.value].tid;
         updateMineInputMax();
         if (!firstClickMade) {
             initGame();
@@ -174,6 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     difficultySlider.addEventListener('input', () => {
         difficultyValue.textContent = difficulties[difficultySlider.value].name;
+        difficulty = difficulties[difficultySlider.value].tid;
         // save this in local storage
         localStorage.setItem('difficulty', difficulties[difficultySlider.value].tid);
         determineAndSetPresetIfAny();
