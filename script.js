@@ -28,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let presets = [
         { name: 'Beginner', id: 'beginner', width: 9, height: 9, mines: 15, difficulty: "easy" },
-        { name: 'Intermediate', id: 'intermediate', width: 16, height: 16, mines: 40, difficulty: "easy" },
+        { name: 'Intermediate', id: 'intermediate', width: 12, height: 12, mines: 25, difficulty: "easy" },
         { name: 'Skilled', id: 'skilled', width: 16, height: 16, mines: 64, difficulty: "medium" },
-        { name: 'Expert', id: 'expert', width: 30, height: 16, mines: 120, difficulty: "hard" },
+        { name: 'Expert', id: 'expert', width: 30, height: 16, mines: 180, difficulty: "hard" },
         { name: 'Van Rijn', id: 'vanrijn', width: 30, height: 30, mines: 225, difficulty: "unlocked" }
     ];
 
