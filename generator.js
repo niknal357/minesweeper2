@@ -577,17 +577,23 @@ function pickMinePosition(board, clickX, clickY, options = {}) {
 
 function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
     // console.log(difficulty);
-    if (difficulty == 2) { // unlocked
+    if (difficulty == "unlocked") {
         return generateRandomBoard(width, height, nMines, clickX, clickY);
     }
     let capabilities;
-    if (difficulty == 0) { // easy
+    if (difficulty == "easy") {
         capabilities = {
             bfConE1: false,
             bfConE2: false,
             bfConE3: false,
         }
-    } else if (difficulty == 1) { // hard
+    } else if (difficulty == "medium") {
+        capabilities = {
+            bfConE1: true,
+            bfConE2: false,
+            bfConE3: false,
+        }
+    } else if (difficulty == "hard") {
         capabilities = {
             bfConE1: false,
             bfConE2: true,

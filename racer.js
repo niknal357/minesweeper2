@@ -12,7 +12,7 @@ function determineOptimalWorkerCount(taskType) {
     }
 }
 
-const difficultiesThatNeedOptimization = [0, 1];
+const difficultiesThatNeedOptimization = ["easy", "medium", "hard"];
 
 /**
  * Function to race multiple Web Workers running the same task and return the first completed result.

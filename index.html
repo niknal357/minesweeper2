@@ -55,20 +55,26 @@
             <!-- Difficulty Slider -->
             <div class="setting">
                 <label for="difficultySlider">Difficulty: <span id="difficultyValue">Easy</span></label>
-                <input type="range" id="difficultySlider" min="0" max="2" step="1" value="0" aria-label="Difficulty Level">
+                <input type="range" id="difficultySlider" min="0" max="3" step="1" value="0" aria-label="Difficulty Level">
                 <div class="difficulty-labels">
                     <span>Easy</span>
+                    <span>Medium</span>
                     <span>Hard</span>
                     <span>Unlocked</span>
                 </div>
-                <div class="info">The difficulty slider controlls how constrained the mine placement is. Easy should require no brainpower. Hard should be harder than easy. Unlocked places no constraints on mine placement which may result in unsolvable games.</div>
-                <div class="info">"Hard" difficulty does not guarantee a harder game, but it simply allows the generator to make one that is.</div>
+                <div class="info">The difficulty slider controlls how constrained the mine placement is. Easy should require no brainpower. Hard should be harder. Unlocked places no constraints on mine placement which may result in unsolvable games.</div>
+                <div class="info">Note: "Hard" difficulty does not guarantee a harder game, but it simply allows the generator to make one that is.</div>
             </div>
         </div>
     </div>
 
     <!-- Overlay -->
     <div id="overlay" class="overlay"></div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">Generating...</div>
+    </div>
 
     <script src="generator.js"></script>
     <script src="racer.js"></script>

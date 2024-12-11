@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const boardElement = document.getElementById('board');
+    const loadingOverlay = document.getElementById('loadingOverlay');
     const resetBtn = document.getElementById('resetBtn');
     const flagCountDisplay = document.getElementById('flagCount');
     const settingsBtn = document.getElementById('settingsBtn');
@@ -18,11 +19,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const mineValue = document.getElementById('mineValue');
     const difficultyValue = document.getElementById('difficultyValue');
 
+    let difficulties = [
+        { name: 'Easy', id: 0, tid: 'easy' },
+        { name: 'Medium', id: 1, tid: 'medium' },
+        { name: 'Hard', id: 2, tid: 'hard' },
+        { name: 'Unlocked', id: 3, tid: 'unlocked' }
+    ]
+
     let presets = [
         { name: 'Beginner', id: 'beginner', width: 9, height: 9, mines: 15, difficulty: "easy" },
         { name: 'Intermediate', id: 'intermediate', width: 16, height: 16, mines: 40, difficulty: "easy" },
-        { name: 'Skilled', id: 'skilled', width: 16, height: 16, mines: 80, difficulty: "hard" },
-        { name: 'Expert', id: 'expert', width: 30, height: 16, mines: 150, difficulty: "hard" },
+        { name: 'Skilled', id: 'skilled', width: 16, height: 16, mines: 64, difficulty: "medium" },
+        { name: 'Expert', id: 'expert', width: 30, height: 16, mines: 120, difficulty: "hard" },
         { name: 'Van Rijn', id: 'vanrijn', width: 30, height: 30, mines: 225, difficulty: "unlocked" }
     ];
 
@@ -38,13 +46,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let cols = parseInt(widthInput.value);
     let rows = parseInt(heightInput.value);
     let mineCount = parseInt(mineInput.value);
-    let difficulty = parseInt(difficultySlider.value); // 0: Easy, 1: Hard, 2: Unlocked
+    let difficulty = difficulties[parseInt(difficultySlider.value)].tid;
     // load from local storage
     if (localStorage.getItem('difficulty')) {
-        difficulty = parseInt(localStorage.getItem('difficulty'));
-        difficultySlider.value = difficulty;
-        const difficulties = ['Easy', 'Hard', 'Unlocked'];
-        difficultyValue.textContent = difficulties[difficulty];
+        difficulty = localStorage.getItem('difficulty');
+        let difficultyNum = difficulties.find(d => d.tid === difficulty).id;
+        if (difficultyNum === undefined) {
+            difficultyNum = 0;
+        }
+        difficultySlider.value = difficultyNum;
+        difficultyValue.textContent = difficulties[difficultyNum].name;
+        difficulty = difficulties[difficultyNum].tid;
     }
 
     if (localStorage.getItem('width')) {
@@ -91,12 +103,11 @@ document.addEventListener('DOMContentLoaded', () => {
         widthInput.value = selectedPreset.width;
         heightInput.value = selectedPreset.height;
         mineInput.value = selectedPreset.mines;
-        difficultySlider.value = selectedPreset.difficulty === "easy" ? 0 : selectedPreset.difficulty === "hard" ? 1 : 2;
+        difficultySlider.value = difficulties.find(d => d.tid === selectedPreset.difficulty).id;
         widthValue.textContent = selectedPreset.width;
         heightValue.textContent = selectedPreset.height;
         mineValue.textContent = selectedPreset.mines;
-        const difficulties = ['Easy', 'Hard', 'Unlocked'];
-        difficultyValue.textContent = difficulties[difficultySlider.value];
+        difficultyValue.textContent = difficulties[difficultySlider.value].name;
         updateMineInputMax();
         if (!firstClickMade) {
             initGame();
@@ -111,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return parseInt(widthInput.value) === preset.width &&
                 parseInt(heightInput.value) === preset.height &&
                 parseInt(mineInput.value) === preset.mines &&
-                (preset.difficulty === "easy" ? 0 : preset.difficulty === "hard" ? 1 : 2) === parseInt(difficultySlider.value);
+                difficulties[parseInt(difficultySlider.value)].tid === preset.difficulty;
         });
         if (selectedPreset) {
             presetSelector.value = selectedPreset.id;
@@ -162,21 +173,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     difficultySlider.addEventListener('input', () => {
-        const difficulties = ['Easy', 'Hard', 'Unlocked'];
-        difficultyValue.textContent = difficulties[difficultySlider.value];
-        difficulty = parseInt(difficultySlider.value);
+        difficultyValue.textContent = difficulties[difficultySlider.value].name;
         // save this in local storage
-        localStorage.setItem('difficulty', difficulty);
+        localStorage.setItem('difficulty', difficulties[difficultySlider.value].tid);
         determineAndSetPresetIfAny();
     });
 
     function setClickLock(lock) {
         clickLock = lock;
-        // then add a class to the board to indicate click lock
+
         if (lock) {
+            // Add the 'click-lock' class to apply styles
             boardElement.classList.add('click-lock');
+
+            // Show the loading overlay
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('active');
+            }
         } else {
+            // Remove the 'click-lock' class
             boardElement.classList.remove('click-lock');
+
+            // Hide the loading overlay
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('active');
+            }
         }
     }
 
@@ -217,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cols = parseInt(widthInput.value);
         rows = parseInt(heightInput.value);
         mineCount = parseInt(mineInput.value);
-        difficulty = parseInt(difficultySlider.value);
+        difficulty = difficulties[parseInt(difficultySlider.value)].tid;
 
         // save settings in local storage
         localStorage.setItem('width', cols);
@@ -364,6 +385,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Assuming runGenerator is your custom mine placement function
         // which takes columns, rows, mineCount, firstClickCol, firstClickRow, and difficulty
         let generatedBoard = await raceRunGenerator(cols, rows, mineCount, c, r, difficulty, numberOfWorkers = determineOptimalWorkerCount('cpu'), timeoutDuration = 60000);
+        // let status = solveBoard(generatedBoard, c, r, {
+        //     bfConE1: true,
+        //     bfConE2: true,
+        //     bfConE3: false,
+        // });
+        // console.log(status);
+        // let steps = status.steps;
+        // let stepCounts = {};
+        // for (let i = 0; i < steps.length; i++) {
+        //     if (stepCounts[steps[i]] == undefined) {
+        //         stepCounts[steps[i]] = 0;
+        //     }
+        //     stepCounts[steps[i]]++;
+        // }
+        // console.log(stepCounts);
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
                 if (generatedBoard[j][i] === "x") {
