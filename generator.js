@@ -237,6 +237,9 @@ function solveBoard(board, startX, startY, capabilities) {
                 let [x, y] = numberCells[i];
                 // console.log(x, y);
                 let variablePositions = mapNumbersToUnopened[x][y];
+                if (variablePositions.length > 3) {
+                    continue;
+                }
                 let initialVariableIds = [];
                 // console.log(variablePositions);
                 for (let j = 0; j < variablePositions.length; j++) {
