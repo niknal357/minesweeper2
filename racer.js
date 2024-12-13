@@ -26,9 +26,9 @@ const difficultiesThatNeedOptimization = ["easy", "medium", "hard"];
  * @param {number} timeoutDuration - Maximum time to wait for a worker to respond in milliseconds (optional).
  * @returns {Promise<Object>} - Resolves with the first successful board or rejects with an error.
  */
-function raceRunGenerator(width, height, nMines, clickX, clickY, difficulty, numberOfWorkers = 12, timeoutDuration = 60000) {
+function raceRunGenerator(width, height, nMines, clickX, clickY, difficulty, shape, numberOfWorkers = 12, timeoutDuration = 60000) {
     if (!difficultiesThatNeedOptimization.includes(difficulty)) {
-        return runGenerator(width, height, nMines, clickX, clickY, difficulty);
+        return runGenerator(width, height, nMines, clickX, clickY, difficulty, shape);
     }
     return new Promise((resolve, reject) => {
         let resolved = false;
@@ -90,7 +90,7 @@ function raceRunGenerator(width, height, nMines, clickX, clickY, difficulty, num
             };
 
             // Post the task data to the worker
-            worker.postMessage({ width, height, nMines, clickX, clickY, difficulty });
+            worker.postMessage({ width, height, nMines, clickX, clickY, difficulty, shape });
         }
     });
 }

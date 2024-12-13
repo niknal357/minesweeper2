@@ -1,14 +1,21 @@
-function gIterateNeighbors(board, x, y, callback) {
-    for (let i = -1; i <= 1; i++) {
-        for (let j = -1; j <= 1; j++) {
-            if (i == 0 && j == 0) {
-                continue;
-            }
-            let newX = x + i;
-            let newY = y + j;
-            if (newX >= 0 && newX < board.length && newY >= 0 && newY < board[0].length) {
-                callback(newX, newY);
-            }
+function gIterateNeighbors(board, x, y, shape, callback) {
+    // for (let i = -1; i <= 1; i++) {
+    //     for (let j = -1; j <= 1; j++) {
+    //         if (i == 0 && j == 0) {
+    //             continue;
+    //         }
+    //         let newX = x + i;
+    //         let newY = y + j;
+    //         if (newX >= 0 && newX < board.length && newY >= 0 && newY < board[0].length) {
+    //             callback(newX, newY);
+    //         }
+    //     }
+    // }
+    for (let i = 0; i < shape.length; i++) {
+        let newX = x + shape[i][0];
+        let newY = y + shape[i][1];
+        if (newX >= 0 && newX < board.length && newY >= 0 && newY < board[0].length) {
+            callback(newX, newY);
         }
     }
 }
@@ -21,9 +28,9 @@ function gIterateBoard(board, callback) {
     }
 }
 
-function gCountAdjacentMines(board, x, y) {
+function gCountAdjacentMines(board, x, y, shape) {
     let count = 0;
-    gIterateNeighbors(board, x, y, (newX, newY) => {
+    gIterateNeighbors(board, x, y, shape, (newX, newY) => {
         if (board[newX][newY] == "x") {
             count++;
         }
@@ -31,9 +38,9 @@ function gCountAdjacentMines(board, x, y) {
     return count;
 }
 
-function gCountAdjacentFlags(visibleBoard, x, y) {
+function gCountAdjacentFlags(visibleBoard, x, y, shape) {
     let count = 0;
-    gIterateNeighbors(visibleBoard, x, y, (newX, newY) => {
+    gIterateNeighbors(visibleBoard, x, y, shape, (newX, newY) => {
         if (visibleBoard[newX][newY] == "f") {
             count++;
         }
@@ -41,7 +48,7 @@ function gCountAdjacentFlags(visibleBoard, x, y) {
     return count;
 }
 
-function findNumberCellsWithUnopenedNeighbors(visibleBoard) {
+function findNumberCellsWithUnopenedNeighbors(visibleBoard, shape) {
     let numberCells = [];
     gIterateBoard(visibleBoard, (x, y) => {
         if (visibleBoard[x][y] == "-") {
@@ -52,7 +59,7 @@ function findNumberCellsWithUnopenedNeighbors(visibleBoard) {
         }
         let nFlags = 0;
         let nUnopened = 0;
-        gIterateNeighbors(visibleBoard, x, y, (newX, newY) => {
+        gIterateNeighbors(visibleBoard, x, y, shape, (newX, newY) => {
             if (visibleBoard[newX][newY] == "-") {
                 nUnopened++;
             }
@@ -64,7 +71,7 @@ function findNumberCellsWithUnopenedNeighbors(visibleBoard) {
     return numberCells;
 }
 
-function createMapsOfNeighbors(visibleBoard, numberCells) {
+function createMapsOfNeighbors(visibleBoard, numberCells, shape) {
     let mapUnopenedToNumbers = [];
     let mapNumbersToUnopened = [];
     for (let i = 0; i < visibleBoard.length; i++) {
@@ -81,7 +88,7 @@ function createMapsOfNeighbors(visibleBoard, numberCells) {
     }
     for (let i = 0; i < numberCells.length; i++) {
         let [x, y] = numberCells[i];
-        gIterateNeighbors(visibleBoard, x, y, (newX, newY) => {
+        gIterateNeighbors(visibleBoard, x, y, shape, (newX, newY) => {
             if (visibleBoard[newX][newY] == "-") {
                 mapNumbersToUnopened[x][y].push([newX, newY]);
                 mapUnopenedToNumbers[newX][newY].push([x, y]);
@@ -155,7 +162,7 @@ function constraintSolve(constraints, numVariables) {
     return [consistencyVector, consistentValues];
 }
 
-function solveBoard(board, startX, startY, capabilities) {
+function solveBoard(board, startX, startY, capabilities, shape) {
     let stepsUsed = [];
     let visibleBoard = [];
     for (let i = 0; i < board.length; i++) {
@@ -165,7 +172,7 @@ function solveBoard(board, startX, startY, capabilities) {
         }
         visibleBoard.push(column);
     }
-    let nMines = gCountAdjacentMines(board, startX, startY);
+    let nMines = gCountAdjacentMines(board, startX, startY, shape);
     visibleBoard[startX][startY] = nMines;
     let numMinesFound = 0;
     let numMinesTotal = 0;
@@ -191,7 +198,7 @@ function solveBoard(board, startX, startY, capabilities) {
             }
             let nFlags = 0;
             let nUnopened = 0;
-            gIterateNeighbors(visibleBoard, x, y, (newX, newY) => {
+            gIterateNeighbors(visibleBoard, x, y, shape, (newX, newY) => {
                 if (visibleBoard[newX][newY] == "f") {
                     nFlags++;
                 } else if (visibleBoard[newX][newY] == "-") {
@@ -199,14 +206,16 @@ function solveBoard(board, startX, startY, capabilities) {
                 }
             });
             if (nFlags == visibleBoard[x][y]) {
-                gIterateNeighbors(visibleBoard, x, y, (newX, newY) => {
+                gIterateNeighbors(visibleBoard, x, y, shape, (newX, newY) => {
                     if (visibleBoard[newX][newY] == "-") {
                         toClick.push([newX, newY]);
-                        stepsUsed.push("d0 click");
+                        if (visibleBoard[x][y] != 0) {
+                            stepsUsed.push("d0 click");
+                        }
                     }
                 });
             } else if (nFlags + nUnopened == visibleBoard[x][y]) {
-                gIterateNeighbors(visibleBoard, x, y, (newX, newY) => {
+                gIterateNeighbors(visibleBoard, x, y, shape, (newX, newY) => {
                     if (visibleBoard[newX][newY] == "-") {
                         toFlag.push([newX, newY]);
                         stepsUsed.push("d0 flag");
@@ -228,8 +237,8 @@ function solveBoard(board, startX, startY, capabilities) {
         let mapUnopenedToNumbers;
         let mapNumbersToUnopened;
         if (toClick.length == 0 && toFlag.length == 0 && (capabilities.bfConE1 || capabilities.bfConE2)) {
-            numberCells = findNumberCellsWithUnopenedNeighbors(visibleBoard);
-            [mapUnopenedToNumbers, mapNumbersToUnopened] = createMapsOfNeighbors(visibleBoard, numberCells);
+            numberCells = findNumberCellsWithUnopenedNeighbors(visibleBoard, shape);
+            [mapUnopenedToNumbers, mapNumbersToUnopened] = createMapsOfNeighbors(visibleBoard, numberCells, shape);
         }
         if (toClick.length == 0 && toFlag.length == 0 && capabilities.bfConE1) {
             // console.log(numberCells);
@@ -248,7 +257,7 @@ function solveBoard(board, startX, startY, capabilities) {
                 let constraints = [
                     {
                         eq: true,
-                        value: visibleBoard[x][y] - gCountAdjacentFlags(visibleBoard, x, y),
+                        value: visibleBoard[x][y] - gCountAdjacentFlags(visibleBoard, x, y, shape),
                         variables: initialVariableIds
                     }
                 ];
@@ -265,7 +274,7 @@ function solveBoard(board, startX, startY, capabilities) {
                         continue;
                     }
                     let value = visibleBoard[numberCell[0]][numberCell[1]];
-                    value -= gCountAdjacentFlags(visibleBoard, numberCell[0], numberCell[1]);
+                    value -= gCountAdjacentFlags(visibleBoard, numberCell[0], numberCell[1], shape);
                     let variableIds = [];
                     let unopenedAroundNumber = mapNumbersToUnopened[numberCell[0]][numberCell[1]];
                     for (let k = 0; k < unopenedAroundNumber.length; k++) {
@@ -321,7 +330,7 @@ function solveBoard(board, startX, startY, capabilities) {
                     let constraints = [
                         {
                             eq: true,
-                            value: visibleBoard[x][y] - gCountAdjacentFlags(visibleBoard, x, y),
+                            value: visibleBoard[x][y] - gCountAdjacentFlags(visibleBoard, x, y, shape),
                             variables: initialVariableIds
                         }
                     ];
@@ -332,7 +341,7 @@ function solveBoard(board, startX, startY, capabilities) {
                             continue;
                         }
                         let value = visibleBoard[numberCell[0]][numberCell[1]];
-                        value -= gCountAdjacentFlags(visibleBoard, numberCell[0], numberCell[1]);
+                        value -= gCountAdjacentFlags(visibleBoard, numberCell[0], numberCell[1], shape);
                         let variableIds = [];
                         let unopenedAroundNumber = mapNumbersToUnopened[numberCell[0]][numberCell[1]];
                         for (let k = 0; k < unopenedAroundNumber.length; k++) {
@@ -390,7 +399,7 @@ function solveBoard(board, startX, startY, capabilities) {
                     reason: "clicked mine"
                 }
             }
-            visibleBoard[x][y] = gCountAdjacentMines(board, x, y);
+            visibleBoard[x][y] = gCountAdjacentMines(board, x, y, shape);
         }
         while (toFlag.length > 0) {
             let [x, y] = toFlag.pop();
@@ -414,7 +423,7 @@ function solveBoard(board, startX, startY, capabilities) {
     }
 }
 
-function generateRandomBoard(width, height, nMines, startX, startY) {
+function generateRandomBoard(width, height, nMines, startX, startY, shape) {
     let board = [];
     for (let i = 0; i < width; i++) {
         let column = [];
@@ -427,7 +436,19 @@ function generateRandomBoard(width, height, nMines, startX, startY) {
     while (nMinesPlaced < nMines) {
         let x = Math.floor(Math.random() * width);
         let y = Math.floor(Math.random() * height);
-        if (Math.abs(x - startX) <= 1 && Math.abs(y - startY) <= 1) {
+        if (x == startX && y == startY) {
+            continue;
+        }
+        let skip = false;
+        for (let i = 0; i < shape.length; i++) {
+            let newX = x + shape[i][0];
+            let newY = y + shape[i][1];
+            if (newX == startX && newY == startY) {
+                skip = true;
+                break;
+            }
+        }
+        if (skip) {
             continue;
         }
         if (board[x][y] != "x") {
@@ -480,7 +501,7 @@ function makeEmptyBoard(width, height) {
  * @returns {[number, number]} - The selected mine position as [x, y].
  * @throws {Error} - If no valid cells are available for mine placement.
  */
-function pickMinePosition(board, clickX, clickY, options = {}) {
+function pickMinePosition(board, clickX, clickY, shape, options = {}) {
     const width = board.length;
     if (width === 0) throw new Error("Board width cannot be zero.");
     const height = board[0].length;
@@ -524,8 +545,21 @@ function pickMinePosition(board, clickX, clickY, options = {}) {
 
     for (let x = 0; x < width; x++) {
         for (let y = 0; y < height; y++) {
-            // Skip cells adjacent to the initial click
-            if (Math.abs(x - clickX) <= 1 && Math.abs(y - clickY) <= 1) {
+            if (x == clickX && y == clickY) {
+                continue;
+            }
+
+            // Skip cell if shape[n] + click is where we are
+            let skip = false;
+            for (let i = 0; i < shape.length; i++) {
+                let newX = x + shape[i][0];
+                let newY = y + shape[i][1];
+                if (newX == clickX && newY == clickY) {
+                    skip = true;
+                    break;
+                }
+            }
+            if (skip) {
                 continue;
             }
 
@@ -578,7 +612,7 @@ function pickMinePosition(board, clickX, clickY, options = {}) {
 
 
 
-function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
+function runGenerator(width, height, nMines, clickX, clickY, difficulty, shape) {
     // console.log(difficulty);
     if (difficulty == "unlocked") {
         return generateRandomBoard(width, height, nMines, clickX, clickY);
@@ -598,77 +632,94 @@ function runGenerator(width, height, nMines, clickX, clickY, difficulty) {
         }
     } else if (difficulty == "hard") {
         capabilities = {
-            bfConE1: false,
+            bfConE1: true,
             bfConE2: true,
             bfConE3: false,
         }
     }
-
-    let nFailedAttempts = 0;
-    // attempt to caluculate density of mines we can confidently place
-    // randomly while still being able to solve the board
-    let density = 0.1;
-    let nMinesImmediate = Math.floor(nMines * density);
-    nMinesImmediate = Math.min(nMinesImmediate, nMines);
-    let board;
-    do {
-        board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY);
-    } while (!solveBoard(board, clickX, clickY, capabilities).success);
-    let numMinesPlaced = nMinesImmediate;
-    let status;
-    while (numMinesPlaced < nMines) {
-        let [x, y] = pickMinePosition(board, clickX, clickY);
-        board[x][y] = "x";
-        // printBoard(board);
-        status = solveBoard(board, clickX, clickY, capabilities);
-        if (status.success) {
-            numMinesPlaced++;
-            nFailedAttempts = 0;
-        } else {
-            board[x][y] = "-"
-            nFailedAttempts++;
-            if (status.reason == "impossible") {
-                console.error("Impossible to make it work");
-                break
+    while (true) {
+        let nFailedAttempts = 0;
+        // attempt to caluculate density of mines we can confidently place
+        // randomly while still being able to solve the board
+        let density = 0.1;
+        let nMinesImmediate = Math.floor(nMines * density);
+        nMinesImmediate = Math.min(nMinesImmediate, nMines);
+        let board;
+        do {
+            board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY, shape);
+        } while (!solveBoard(board, clickX, clickY, capabilities, shape).success);
+        let numMinesPlaced = nMinesImmediate;
+        let status;
+        while (numMinesPlaced < nMines) {
+            let [x, y] = pickMinePosition(board, clickX, clickY, shape);
+            board[x][y] = "x";
+            // printBoard(board);
+            status = solveBoard(board, clickX, clickY, capabilities, shape);
+            if (status.success) {
+                numMinesPlaced++;
+                nFailedAttempts = 0;
+            } else {
+                board[x][y] = "-"
+                nFailedAttempts++;
+                if (status.reason == "impossible") {
+                    console.error("Impossible to make it work");
+                    break
+                }
+            }
+            if (nFailedAttempts > 50) {
+                do {
+                    board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY, shape);
+                } while (!solveBoard(board, clickX, clickY, capabilities, shape).success);
+                numMinesPlaced = nMinesImmediate;
+                nFailedAttempts = 0;
             }
         }
-        if (nFailedAttempts > 50) {
-            do {
-                board = generateRandomBoard(width, height, nMinesImmediate, clickX, clickY);
-            } while (!solveBoard(board, clickX, clickY, capabilities).success);
-            numMinesPlaced = nMinesImmediate;
-            nFailedAttempts = 0;
+        // console.log(status.steps);
+        // count how many of each step there were in the steps
+        // printBoard(board);
+        let steps = status.steps;
+        let stepCounts = {
+            "d0 click": 0,
+            "d0 flag": 0,
+            "d1 click": 0,
+            "d1 flag": 0,
+            "d2 click": 0,
+            "d2 flag": 0,
+        };
+        for (let i = 0; i < steps.length; i++) {
+            if (stepCounts[steps[i]] == undefined) {
+                stepCounts[steps[i]] = 0;
+            }
+            stepCounts[steps[i]]++;
         }
-    }
-    // console.log(status.steps);
-    // count how many of each step there were in the steps
-    // printBoard(board);
-    let steps = status.steps;
-    let stepCounts = {};
-    for (let i = 0; i < steps.length; i++) {
-        if (stepCounts[steps[i]] == undefined) {
-            stepCounts[steps[i]] = 0;
+        // console.log(stepCounts);
+        if (difficulty == "hard") {
+            // calculate ratio of d2 flags to total flags
+            let funkyRatio = (stepCounts["d2 flag"] + stepCounts["d2 click"]) / (stepCounts["d0 flag"] + stepCounts["d1 flag"] + stepCounts["d2 flag"] + stepCounts["d0 click"] + stepCounts["d1 click"] + stepCounts["d2 click"]);
+            console.log(funkyRatio);
+            if (funkyRatio > 0.1) {
+                return board;
+            }
+        } else {
+            return board;
         }
-        stepCounts[steps[i]]++;
+        // while (true) {
+        //     let board = generateRandomBoard(width, height, nMines, clickX, clickY);
+        //     printBoard(board);
+        //     let status = solveBoard(board, clickX, clickY, capabilities);
+        //     if (status.success) {
+        //         return board;
+        //     }
+        // }
     }
-    // console.log(stepCounts);
-    return board;
-    // while (true) {
-    //     let board = generateRandomBoard(width, height, nMines, clickX, clickY);
-    //     printBoard(board);
-    //     let status = solveBoard(board, clickX, clickY, capabilities);
-    //     if (status.success) {
-    //         return board;
-    //     }
-    // }
 
 }
 
 // Listen for messages from the main thread
 self.onmessage = function (event) {
-    const { width, height, nMines, clickX, clickY, difficulty } = event.data;
+    const { width, height, nMines, clickX, clickY, difficulty, shape } = event.data;
     try {
-        const board = runGenerator(width, height, nMines, clickX, clickY, difficulty);
+        const board = runGenerator(width, height, nMines, clickX, clickY, difficulty, shape);
         // Post the result back to the main thread
         self.postMessage({ success: true, board });
     } catch (error) {

@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const heightInput = document.getElementById('heightInput');
     const mineInput = document.getElementById('mineInput');
     const difficultySlider = document.getElementById('difficultySlider');
+    const shapeSelector = document.getElementById('shapeSelector');
 
     const widthValue = document.getElementById('widthValue');
     const heightValue = document.getElementById('heightValue');
@@ -27,11 +28,11 @@ document.addEventListener('DOMContentLoaded', () => {
     ]
 
     let presets = [
-        { name: 'Beginner', id: 'beginner', width: 9, height: 9, mines: 15, difficulty: "easy" },
-        { name: 'Intermediate', id: 'intermediate', width: 12, height: 12, mines: 25, difficulty: "easy" },
-        { name: 'Skilled', id: 'skilled', width: 16, height: 16, mines: 64, difficulty: "medium" },
-        { name: 'Expert', id: 'expert', width: 30, height: 16, mines: 180, difficulty: "hard" },
-        { name: 'Van Rijn', id: 'vanrijn', width: 30, height: 30, mines: 225, difficulty: "unlocked" }
+        { name: 'Beginner', id: 'beginner', width: 9, height: 9, mines: 15, difficulty: "easy", shape: "standard" },
+        { name: 'Intermediate', id: 'intermediate', width: 12, height: 12, mines: 25, difficulty: "easy", shape: "standard" },
+        { name: 'Skilled', id: 'skilled', width: 16, height: 16, mines: 64, difficulty: "medium", shape: "standard" },
+        { name: 'Expert', id: 'expert', width: 30, height: 16, mines: 180, difficulty: "hard", shape: "standard" },
+        { name: 'Van Rijn', id: 'vanrijn', width: 30, height: 30, mines: 225, difficulty: "unlocked", shape: "standard" }
     ];
 
     for (let i = 0; i < presets.length; i++) {
@@ -47,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let rows = parseInt(heightInput.value);
     let mineCount = parseInt(mineInput.value);
     let difficulty = difficulties[parseInt(difficultySlider.value)].tid;
+    let neighborOffset = "standard";
     // load from local storage
     if (localStorage.getItem('difficulty')) {
         difficulty = localStorage.getItem('difficulty');
@@ -112,11 +114,117 @@ document.addEventListener('DOMContentLoaded', () => {
         mineValue.textContent = selectedPreset.mines;
         difficultyValue.textContent = difficulties[difficultySlider.value].name;
         difficulty = difficulties[difficultySlider.value].tid;
+        shapeSelector.value = selectedPreset.shape;
+        neighborOffset = selectedPreset.shape;
+        if (!firstClickMade || isGameOver) {
+            neighborOffsets = neighborOffsetOptions[shapeSelector.value];
+        }
         updateMineInputMax();
         if (!firstClickMade) {
             initGame();
         }
     });
+
+    let neighborOffsets = [
+        // standard
+        [-1, -1],
+        [-1, 0],
+        [-1, 1],
+        [0, -1],
+        [0, 1],
+        [1, -1],
+        [1, 0],
+        [1, 1]
+    ];
+
+
+    let neighborOffsetOptions = {
+        "standard": [
+            [-1, -1],
+            [-1, 0],
+            [-1, 1],
+            [0, -1],
+            [0, 1],
+            [1, -1],
+            [1, 0],
+            [1, 1]
+        ],
+        "knight": [
+            [-2, -1],
+            [-2, 1],
+            [-1, -2],
+            [1, -2],
+            [2, -1],
+            [2, 1],
+            [1, 2],
+            [-1, 2]
+        ],
+        "cross": [
+            [-1, 0],
+            [-2, 0],
+            [1, 0],
+            [2, 0],
+            [0, -1],
+            [0, -2],
+            [0, 1],
+            [0, 2]
+        ],
+        "bigball": [
+            [-1, -2],
+            [0, -2],
+            [1, -2],
+            [-2, -1],
+            [-1, -1],
+            [0, -1],
+            [1, -1],
+            [2, -1],
+            [-2, 0],
+            [-1, 0],
+            [1, 0],
+            [2, 0],
+            [-2, 1],
+            [-1, 1],
+            [0, 1],
+            [1, 1],
+            [2, 1],
+            [-1, 2],
+            [0, 2],
+            [1, 2]
+        ]
+    }
+
+    shapeSelector.addEventListener('change', () => {
+        // neighborOffsets = neighborOffsetOptions[shapeSelector.value];
+        neighborOffset = shapeSelector.value;
+        localStorage.setItem('shape', shapeSelector.value);
+        determineAndSetPresetIfAny();
+    });
+
+    if (localStorage.getItem('shape')) {
+        shapeSelector.value = localStorage.getItem('shape');
+        neighborOffset = shapeSelector.value;
+        neighborOffsets = neighborOffsetOptions[shapeSelector.value];
+    }
+
+    function iterateNeighbors(r, c, callback) {
+        // for (let dr = -1; dr <= 1; dr++) {
+        //     for (let dc = -1; dc <= 1; dc++) {
+        //         if (dr === 0 && dc === 0) continue;
+        //         const nr = r + dr;
+        //         const nc = c + dc;
+        //         if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+        //             callback(nr, nc);
+        //         }
+        //     }
+        // }
+        for (let i = 0; i < neighborOffsets.length; i++) {
+            const nr = r + neighborOffsets[i][0];
+            const nc = c + neighborOffsets[i][1];
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                callback(nr, nc);
+            }
+        }
+    }
 
     function determineAndSetPresetIfAny() {
         // check the current settings and compare it with the presets
@@ -126,7 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return parseInt(widthInput.value) === preset.width &&
                 parseInt(heightInput.value) === preset.height &&
                 parseInt(mineInput.value) === preset.mines &&
-                difficulties[parseInt(difficultySlider.value)].tid === preset.difficulty;
+                difficulties[parseInt(difficultySlider.value)].tid === preset.difficulty &&
+                shapeSelector.value === preset.shape;
         });
         if (selectedPreset) {
             presetSelector.value = selectedPreset.id;
@@ -210,7 +319,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateMaxMines() {
         let cols = parseInt(widthInput.value);
         let rows = parseInt(heightInput.value);
-        return Math.floor(rows * cols - 9);
+        let shapeUsed = shapeSelector.value;
+        let shapeOffsetsUsed = neighborOffsetOptions[shapeUsed];
+        return Math.floor(rows * cols - shapeOffsetsUsed.length - 1);
     }
 
     // Function to update the max attribute of the mine input
@@ -244,12 +355,15 @@ document.addEventListener('DOMContentLoaded', () => {
         rows = parseInt(heightInput.value);
         mineCount = parseInt(mineInput.value);
         difficulty = difficulties[parseInt(difficultySlider.value)].tid;
+        neighborOffset = shapeSelector.value;
+        neighborOffsets = neighborOffsetOptions[shapeSelector.value];
 
         // save settings in local storage
         localStorage.setItem('width', cols);
         localStorage.setItem('height', rows);
         localStorage.setItem('mines', mineCount);
         localStorage.setItem('difficulty', difficulty);
+        localStorage.setItem('shape', neighborOffset);
 
         board = [];
         isGameOver = false;
@@ -389,12 +503,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function placeMinesAvoiding(r, c) {
         // Assuming runGenerator is your custom mine placement function
         // which takes columns, rows, mineCount, firstClickCol, firstClickRow, and difficulty
-        let generatedBoard = await raceRunGenerator(cols, rows, mineCount, c, r, difficulty, numberOfWorkers = determineOptimalWorkerCount('cpu'), timeoutDuration = 60000);
+        let generatedBoard = await raceRunGenerator(cols, rows, mineCount, c, r, difficulty, neighborOffsets, numberOfWorkers = determineOptimalWorkerCount('cpu'), timeoutDuration = 60000);
+        // let generatedBoard = runGenerator(cols, rows, mineCount, c, r, difficulty, neighborOffsets);
         // let status = solveBoard(generatedBoard, c, r, {
         //     bfConE1: true,
         //     bfConE2: true,
         //     bfConE3: false,
-        // });
+        // }, neighborOffsets);
         // console.log(status);
         // let steps = status.steps;
         // let stepCounts = {};
@@ -426,16 +541,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function countAdjacentMines(r, c) {
         let count = 0;
-        for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-                if (dr === 0 && dc === 0) continue;
-                const nr = r + dr;
-                const nc = c + dc;
-                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-                    if (board[nr][nc].mine) count++;
-                }
+        iterateNeighbors(r, c, (nr, nc) => {
+            if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                if (board[nr][nc].mine) count++;
             }
-        }
+        });
         return count;
     }
 
@@ -472,12 +582,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function revealNeighbors(r, c) {
-        for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-                if (dr === 0 && dc === 0) continue;
-                revealSafe(r + dr, c + dc);
-            }
-        }
+        iterateNeighbors(r, c, (nr, nc) => {
+            revealSafe(nr, nc);
+        });
     }
 
     function revealSafe(r, c) {
@@ -516,17 +623,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let flaggedCount = 0;
         let hiddenNeighbors = [];
-        for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-                if (dr === 0 && dc === 0) continue;
-                const nr = r + dr;
-                const nc = c + dc;
-                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-                const neighbor = board[nr][nc];
-                if (neighbor.flagged) flaggedCount++;
-                else if (!neighbor.revealed) hiddenNeighbors.push({ r: nr, c: nc });
-            }
-        }
+        iterateNeighbors(r, c, (nr, nc) => {
+            const neighbor = board[nr][nc];
+            if (neighbor.flagged) flaggedCount++;
+            else if (!neighbor.revealed) hiddenNeighbors.push({ r: nr, c: nc });
+        });
 
         // If the number of flagged neighbors equals the cell's number, reveal all other hidden neighbors
         if (flaggedCount === cell.adjacentMines) {
@@ -542,22 +643,15 @@ document.addEventListener('DOMContentLoaded', () => {
             hc.classList.remove('highlight');
         }
         highlightedCells = [];
-
-        for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-                if (dr === 0 && dc === 0) continue;
-                const nr = r + dr;
-                const nc = c + dc;
-                if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
-                const cellEl = getCellElement(nr, nc);
-                if (highlight) {
-                    cellEl.classList.add('highlight');
-                    highlightedCells.push(cellEl);
-                } else {
-                    cellEl.classList.remove('highlight');
-                }
+        iterateNeighbors(r, c, (nr, nc) => {
+            const cellEl = getCellElement(nr, nc);
+            if (highlight && !board[nr][nc].revealed) {
+                cellEl.classList.add('highlight');
+                highlightedCells.push(cellEl);
+            } else {
+                cellEl.classList.remove('highlight');
             }
-        }
+        });
     }
 
     function checkWin() {
