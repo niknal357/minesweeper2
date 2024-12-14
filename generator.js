@@ -615,7 +615,7 @@ function pickMinePosition(board, clickX, clickY, shape, options = {}) {
 function runGenerator(width, height, nMines, clickX, clickY, difficulty, shape) {
     // console.log(difficulty);
     if (difficulty == "unlocked") {
-        return generateRandomBoard(width, height, nMines, clickX, clickY);
+        return generateRandomBoard(width, height, nMines, clickX, clickY, shape);
     }
     let capabilities;
     if (difficulty == "easy") {
