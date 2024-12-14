@@ -156,6 +156,18 @@ h1 {
 .cell.number6 { color: #16a085; }
 .cell.number7 { color: #2c3e50; }
 .cell.number8 { color: #7f8c8d; }
+.cell.number9 { color: #34495e; }
+.cell.number10 { color: #f39c12; }
+.cell.number11 { color: #c0392b; }
+.cell.number12 { color: #8e44ad; }
+.cell.number13 { color: #27ae60; }
+.cell.number14 { color: #2980b9; }
+.cell.number15 { color: #f1c40f; }
+.cell.number16 { color: #e67e22; }
+.cell.number17 { color: #3498db; }
+.cell.number18 { color: #e74c3c; }
+.cell.number19 { color: #1abc9c; }
+.cell.number20 { color: #f39c12; }
 
 .cell.revealed.number0 {
     color: #aaa;
