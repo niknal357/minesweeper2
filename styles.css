@@ -181,6 +181,23 @@ h1 {
     background: #f0f6ff !important;
 }
 
+.cell.highlightassisttoomuch {
+    background: #dfbdbd !important;
+}
+
+.cell.highlightassisttoomuch.pressed,
+.cell.highlightassisttoomuch.highlight {
+    background: #c99b9b !important;
+}
+
+.cell.highlightassistjustright {
+    background: #d1e9d1 !important;
+}
+
+.cell.highlightassistjustright.presesd {
+    background: #b4d4b4 !important;
+}
+
 /* Settings Menu Styles */
 .settings-menu {
     position: fixed;
@@ -265,6 +282,11 @@ h1 {
 .settings-content input[type="range"] {
     width: 100%;
     margin-top: 5px;
+}
+
+.settings-content input[type="checkbox"] {
+    margin-right: 5px;
+    margin-left: 0;
 }
 
 .settings-content input[type="range"] + span {

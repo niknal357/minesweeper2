@@ -66,10 +66,10 @@
                 <div class="info">Note: "Hard" difficulty does not guarantee a harder game, but it simply allows the generator to make one that is.</div>
             </div>
 
-            <!-- <div class="setting">
-                <input type="checkbox" id="highlightCheckbox" aria-label="Highlight Mines">
-                <label for="highlightCheckbox">Highlight Mines</label>
-            </div> -->
+            <div class="setting">
+                <label for="highlightAssistCheckbox">Highlight Assist <input type="checkbox" id="highlightAssistCheckbox" aria-label="Highlight Assist"></label>
+                <div class="info">The highlight assist will tell you if the amount of flags around a cell matches the number on the cell itself. This can help you focus on performing logical deduction without worrying about making silly mistakes.</div>
+            </div>
 
             <div class="setting">
                 <label for="shapeSelector">Shape:</label>
@@ -79,7 +79,7 @@
                     <option value="cross">Plus</option>
                     <option value="bigball">Big Ball</option>
                 </select>
-                <div class="info">The shape settings are experimental and are likely to break.</div>
+                <div class="info">The shape settings are experimental and are likely to break in many unexpected ways. This may include the game crashing, freezing up, and more.</div>
             </div>
         </div>
     </div>

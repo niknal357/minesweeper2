@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const heightInput = document.getElementById('heightInput');
     const mineInput = document.getElementById('mineInput');
     const difficultySlider = document.getElementById('difficultySlider');
+    const highlightAssistCheckbox = document.getElementById('highlightAssistCheckbox');
     const shapeSelector = document.getElementById('shapeSelector');
 
     const widthValue = document.getElementById('widthValue');
@@ -48,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let rows = parseInt(heightInput.value);
     let mineCount = parseInt(mineInput.value);
     let difficulty = difficulties[parseInt(difficultySlider.value)].tid;
+    let highlightAssist = highlightAssistCheckbox.checked;
     let neighborOffset = "standard";
     // load from local storage
     if (localStorage.getItem('difficulty')) {
@@ -77,6 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('mines')) {
         mineInput.value = localStorage.getItem('mines');
         mineValue.textContent = localStorage.getItem('mines');
+    }
+
+    if (localStorage.getItem('highlightAssist')) {
+        highlightAssistCheckbox.checked = localStorage.getItem('highlightAssist') === 'true';
     }
 
     let flagsUsed = 0;
@@ -355,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rows = parseInt(heightInput.value);
         mineCount = parseInt(mineInput.value);
         difficulty = difficulties[parseInt(difficultySlider.value)].tid;
+        highlightAssist = highlightAssistCheckbox.checked;
         neighborOffset = shapeSelector.value;
         neighborOffsets = neighborOffsetOptions[shapeSelector.value];
 
@@ -363,6 +370,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('height', rows);
         localStorage.setItem('mines', mineCount);
         localStorage.setItem('difficulty', difficulty);
+        localStorage.setItem('highlightAssist', highlightAssist);
         localStorage.setItem('shape', neighborOffset);
 
         board = [];
@@ -579,6 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 revealNeighbors(r, c);
             }
         }
+        recalculateHighlightAssist(r, c);
     }
 
     function revealNeighbors(r, c) {
@@ -592,6 +601,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const cell = board[r][c];
         if (!cell.revealed && !cell.mine && !cell.flagged) {
             revealCell(r, c);
+        }
+    }
+
+    function recalculateHighlightAssist(r, c) {
+        if (!highlightAssist) return;
+        // count mine neighbors and flagged neighbors
+        const cell = board[r][c];
+        if (!cell.revealed /*|| cell.adjacentMines === 0*/) return;
+        if (cell.mine) return;
+        const cellEl = getCellElement(r, c);
+        let flaggedCount = 0;
+        iterateNeighbors(r, c, (nr, nc) => {
+            const neighbor = board[nr][nc];
+            if (neighbor.flagged) flaggedCount++;
+        });
+        let status = null;
+        if (flaggedCount === cell.adjacentMines) {
+            status = "justright";
+        } else if (flaggedCount > cell.adjacentMines) {
+            status = "toomuch";
+        }
+        cellEl.classList.remove('highlightassisttoomuch');
+        cellEl.classList.remove('highlightassistjustright');
+        if (status != null) {
+            cellEl.classList.add('highlightassist' + status);
         }
     }
 
@@ -615,6 +649,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         flagCountDisplay.textContent = mineCount - flagsUsed;
+        iterateNeighbors(r, c, (nr, nc) => {
+            recalculateHighlightAssist(nr, nc);
+        });
     }
 
     function chordIfPossible(r, c) {
