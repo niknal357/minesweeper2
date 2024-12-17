@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const heightInput = document.getElementById('heightInput');
     const mineInput = document.getElementById('mineInput');
     const difficultySlider = document.getElementById('difficultySlider');
+    const highlightNeighborsCheckbox = document.getElementById('highlightNeighborsCheckbox');
     const highlightAssistCheckbox = document.getElementById('highlightAssistCheckbox');
     const shapeSelector = document.getElementById('shapeSelector');
 
@@ -49,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let rows = parseInt(heightInput.value);
     let mineCount = parseInt(mineInput.value);
     let difficulty = difficulties[parseInt(difficultySlider.value)].tid;
+    let highlightNeighborsEnabled = highlightNeighborsCheckbox.checked;
     let highlightAssist = highlightAssistCheckbox.checked;
     let neighborOffset = "standard";
     // load from local storage
@@ -79,6 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('mines')) {
         mineInput.value = localStorage.getItem('mines');
         mineValue.textContent = localStorage.getItem('mines');
+    }
+
+    if (localStorage.getItem('highlightNeighbors')) {
+        highlightNeighborsCheckbox.checked = localStorage.getItem('highlightNeighbors') === 'true';
     }
 
     if (localStorage.getItem('highlightAssist')) {
@@ -361,6 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
         rows = parseInt(heightInput.value);
         mineCount = parseInt(mineInput.value);
         difficulty = difficulties[parseInt(difficultySlider.value)].tid;
+        highlightNeighborsEnabled = highlightNeighborsCheckbox.checked;
         highlightAssist = highlightAssistCheckbox.checked;
         neighborOffset = shapeSelector.value;
         neighborOffsets = neighborOffsetOptions[shapeSelector.value];
@@ -370,6 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('height', rows);
         localStorage.setItem('mines', mineCount);
         localStorage.setItem('difficulty', difficulty);
+        localStorage.setItem('highlightNeighbors', highlightNeighborsEnabled);
         localStorage.setItem('highlightAssist', highlightAssist);
         localStorage.setItem('shape', neighborOffset);
 
@@ -667,7 +675,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // If the number of flagged neighbors equals the cell's number, reveal all other hidden neighbors
-        if (flaggedCount === cell.adjacentMines) {
+        if (flaggedCount === cell.adjacentMines && highlightNeighborsEnabled) {
             for (const n of hiddenNeighbors) {
                 revealCell(n.r, n.c);
             }
@@ -676,6 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function highlightNeighbors(r, c, highlight) {
+        if (!highlightNeighborsEnabled) return;
         for (let hc of highlightedCells) {
             hc.classList.remove('highlight');
         }

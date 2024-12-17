@@ -696,7 +696,7 @@ function runGenerator(width, height, nMines, clickX, clickY, difficulty, shape) 
         if (difficulty == "hard") {
             // calculate ratio of d2 flags to total flags
             let funkyRatio = (stepCounts["d2 flag"] + stepCounts["d2 click"]) / (stepCounts["d0 flag"] + stepCounts["d1 flag"] + stepCounts["d2 flag"] + stepCounts["d0 click"] + stepCounts["d1 click"] + stepCounts["d2 click"]);
-            console.log(funkyRatio);
+            // console.log(funkyRatio);
             if (funkyRatio > 0.1) {
                 return board;
             }
