@@ -5,6 +5,8 @@ body {
     /* padding-top: 50px; */
     margin: 0;
     color: #333;
+
+    --numCells: 9;
 }
 
 h1 {
@@ -32,12 +34,36 @@ h1 {
     font-size: 14px;
     border-radius: 4px;
     cursor: pointer;
+    height: 40px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     transition: background 0.2s;
 }
 
 .controls button:hover {
     background: #3f7bbf;
+}
+
+.controls button.toggleable {
+    background: #f0f0f0;
+    color: #555;
+    box-shadow: none;
+    border: 1px solid #000000ff;
+}
+
+.controls button.toggleable.active {
+    background: #4a90e2;
+    color: #fff;
+    border: 1px solid #00000000;
+    /* box-shadow: 0 2px 4px rgba(0,0,0,0.1); */
+}
+
+.controls button.square {
+    /* this button needs to have a square aspect ratio */
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    line-height: 40px;
+    padding: 0;
 }
 
 #board {
@@ -344,11 +370,21 @@ h1 {
 @media (max-width: 500px) {
     .settings-menu {
         width: 100%;
+        right: -100%;
     }
 
     .controls {
-        flex-direction: column;
+        /* don't do column, but limit width */
+        flex-direction: row;
+        flex-wrap: wrap;
         gap: 10px;
+    }
+
+    .cell {
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+        font-size: 9px;
     }
 }
 

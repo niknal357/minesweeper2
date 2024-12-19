@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsMenu = document.getElementById('settingsMenu');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const overlay = document.getElementById('overlay');
+    const actionToggle = document.getElementById('actionToggle');
 
     const presetSelector = document.getElementById('presetSelector');
     const widthInput = document.getElementById('widthInput');
@@ -53,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let highlightNeighborsEnabled = highlightNeighborsCheckbox.checked;
     let highlightAssist = highlightAssistCheckbox.checked;
     let neighborOffset = "standard";
+    let currentAction = "dig";
     // load from local storage
     if (localStorage.getItem('difficulty')) {
         difficulty = localStorage.getItem('difficulty');
@@ -115,6 +117,45 @@ document.addEventListener('DOMContentLoaded', () => {
         initGame();
     });
 
+    actionToggle.addEventListener('click', () => {
+        if (currentAction === "dig") {
+            currentAction = "flag";
+            actionToggle.classList.add('active');
+        } else {
+            currentAction = "dig";
+            actionToggle.classList.remove('active');
+        }
+    });
+
+    // if the dimensions of the screen have changed, swap the width and height if needed
+    window.addEventListener('resize', () => {
+        // check if the width of the screen is less than the height
+        if (window.innerWidth < window.innerHeight) {
+            if (widthInput.value > heightInput.value) {
+                let temp = widthInput.value;
+                widthInput.value = heightInput.value;
+                heightInput.value = temp;
+                widthValue.textContent = heightInput.value;
+                heightValue.textContent = widthInput.value;
+                if (!firstClickMade) {
+                    initGame();
+                }
+            }
+        }
+        if (window.innerWidth > window.innerHeight) {
+            if (widthInput.value < heightInput.value) {
+                let temp = widthInput.value;
+                widthInput.value = heightInput.value;
+                heightInput.value = temp;
+                widthValue.textContent = heightInput.value;
+                heightValue.textContent = widthInput.value;
+                if (!firstClickMade) {
+                    initGame();
+                }
+            }
+        }
+    });
+
     presetSelector.addEventListener('change', () => {
         const selectedPreset = presets[presetSelector.selectedIndex];
         widthInput.value = selectedPreset.width;
@@ -123,6 +164,14 @@ document.addEventListener('DOMContentLoaded', () => {
         difficultySlider.value = difficulties.find(d => d.tid === selectedPreset.difficulty).id;
         widthValue.textContent = selectedPreset.width;
         heightValue.textContent = selectedPreset.height;
+        // if the width of the screen is less than the height, swap them
+        if (window.innerWidth < window.innerHeight) {
+            let temp = widthInput.value;
+            widthInput.value = heightInput.value;
+            heightInput.value = temp;
+            widthValue.textContent = heightInput.value;
+            heightValue.textContent = widthInput.value;
+        }
         mineValue.textContent = selectedPreset.mines;
         difficultyValue.textContent = difficulties[difficultySlider.value].name;
         difficulty = difficulties[difficultySlider.value].tid;
@@ -243,8 +292,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // if it matches a preset, set the preset selector to that preset
         // if it doesn't match any preset, set the preset selector to "Custom"
         const selectedPreset = presets.find(preset => {
-            return parseInt(widthInput.value) === preset.width &&
-                parseInt(heightInput.value) === preset.height &&
+            return ((parseInt(widthInput.value) === preset.width &&
+                parseInt(heightInput.value) === preset.height) || (parseInt(widthInput.value) === preset.height &&
+                    parseInt(heightInput.value) === preset.width)) &&
                 parseInt(mineInput.value) === preset.mines &&
                 difficulties[parseInt(difficultySlider.value)].tid === preset.difficulty &&
                 shapeSelector.value === preset.shape;
@@ -454,6 +504,10 @@ document.addEventListener('DOMContentLoaded', () => {
             cellEl.classList.add('pressed');
             currentPressedCell = { r, c };
         }
+
+        if (cell.flagged && currentAction === "flag") {
+            toggleFlag(r, c);
+        }
     }
 
     async function handleMouseUp(e) {
@@ -467,20 +521,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentPressedCell && currentPressedCell.r === r && currentPressedCell.c === c) {
             cellEl.classList.remove('pressed');
             currentPressedCell = null;
-
-            if (!cell.revealed && !cell.flagged) {
-                if (!firstClickMade) {
-                    setClickLock(true);
-                    await placeMinesAvoiding(r, c);
-                    calculateAdjacentMines();
-                    firstClickMade = true;
-                    setClickLock(false);
+            if (currentAction === "flag") {
+                toggleFlag(r, c);
+            } else {
+                if (!cell.revealed && !cell.flagged) {
+                    if (!firstClickMade) {
+                        setClickLock(true);
+                        await placeMinesAvoiding(r, c);
+                        calculateAdjacentMines();
+                        firstClickMade = true;
+                        setClickLock(false);
+                    }
+                    revealCell(r, c);
+                    checkWin();
+                } else if (cell.revealed) {
+                    // If already revealed, try chording
+                    chordIfPossible(r, c);
                 }
-                revealCell(r, c);
-                checkWin();
-            } else if (cell.revealed) {
-                // If already revealed, try chording
-                chordIfPossible(r, c);
             }
         } else {
             // If mouseup on a different cell than pressed, cancel press
